@@ -90,3 +90,35 @@ def compare_with_benchmarks(closes, strategy_positions, cost_bps=2.0,
             "beats_buy_and_hold": beats_bh,
             "beats_ma_crossover": beats_ma,
             "summary": summary}
+
+
+# ---------------------------------------------------------------------------
+# Engine replay: turn the deterministic signal engine into a position series
+# ---------------------------------------------------------------------------
+def signal_positions(bars, instrument="BTC_USD", timeframe="H1",
+                     generator=None):
+    """Replay the deterministic signal engine over historical bars.
+
+    Returns positions[i] for i in range(len(bars)-1): the position HELD
+    from close i to close i+1. The signal for slot i is computed from
+    bars[:i+1] ONLY (bar i's close included, nothing later) — no
+    lookahead by construction.
+
+    Mapping follows the live contract exactly: the engine is the trigger.
+      direction "long"  ->  1.0
+      direction "short" -> -1.0
+      no proposal       ->  0.0 (flat; the engine did not fire)
+
+    `generator` is injectable for tests; defaults to the real engine.
+    """
+    if generator is None:
+        from .signal_engine import generate as generator  # local: no cycle
+    positions = []
+    for i in range(len(bars) - 1):
+        proposal = generator(instrument, bars[:i + 1], timeframe=timeframe)
+        if proposal is None:
+            positions.append(0.0)
+        else:
+            positions.append(
+                1.0 if proposal["direction"] == "long" else -1.0)
+    return positions

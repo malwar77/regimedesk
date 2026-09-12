@@ -242,6 +242,31 @@ def cmd_status(args):
     print("mode: recorded facts only — real numbers, including losses; "
           "no gain is guaranteed or implied.")
 
+def cmd_backtest(args):
+    """Historical replay of the deterministic engine with mandatory
+    benchmark comparison. Read-only: touches no account, places nothing."""
+    pipeline = DataPipeline(live=False, source=args.source,
+                            path=args.data_path)
+    bars = pipeline.fetch(args.instrument, args.timeframe,
+                          count=args.count)
+    closes = [b["close"] for b in bars]
+    from core.backtest import signal_positions, compare_with_benchmarks
+    positions = signal_positions(bars, args.instrument, args.timeframe)
+    report = compare_with_benchmarks(closes, positions,
+                                    cost_bps=args.cost_bps,
+                                    label="%s %s (n=%d)" % (
+                                        args.instrument, args.timeframe,
+                                        len(bars)))
+    print(report["summary"])
+    strat = report["strategy"]
+    print("  strategy: total %.2f%% | max drawdown %.2f%% | sharpe %.2f"
+          % (strat["total_return"] * 100, strat["max_drawdown"] * 100,
+             strat["sharpe"]))
+    print("  engine fired on %d of %d slots (rest flat by rule)"
+          % (sum(1 for p in positions if p != 0.0), len(positions)))
+    print("past replay is a fact record, not a prediction or a promise; "
+          "live results can and often do differ")
+
 
 def main():
     p = argparse.ArgumentParser(prog="regimedesk")
@@ -281,6 +306,16 @@ def main():
     st = sub.add_parser("status")
     st.add_argument("--user", required=True)
     st.set_defaults(fn=cmd_status)
+
+    bt = sub.add_parser("backtest")
+    bt.add_argument("--instrument", default="BTC_USD")
+    bt.add_argument("--timeframe", default="H1")
+    bt.add_argument("--source", default="synthetic",
+                    choices=["synthetic", "recorded", "file"])
+    bt.add_argument("--data-path", default=None)
+    bt.add_argument("--count", type=int, default=500)
+    bt.add_argument("--cost-bps", type=float, default=2.0)
+    bt.set_defaults(fn=cmd_backtest)
 
     args = p.parse_args()
     args.fn(args)

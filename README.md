@@ -159,6 +159,17 @@ visually distinct **"LLM Commentary (non-authoritative)"** section.
   (summary/agreement/notes/source). No annotation content can alter
   stop-loss, take-profit, risk, position size, or mode — display only.
 
+## Backtesting (honest replay)
+
+`python main.py backtest --count 300` replays the deterministic signal
+engine over historical bars with **no lookahead** (the signal for each
+slot is computed only from bars up to and including that close) and
+compares the result, after costs, against buy-and-hold and an
+MA-crossover benchmark. If the engine does not beat both, the report
+says so plainly — absolute returns alone are never the headline. A
+backtest is a fact record of the past, not a prediction: live results
+can and do differ.
+
 ## Testing
 
 Tests cover the EMA/RSI/ATR math against hand-calculated reference values,
