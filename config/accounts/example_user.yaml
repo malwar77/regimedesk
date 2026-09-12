@@ -1,0 +1,21 @@
+# RegimeDesk account config — example user.
+#
+# SAFETY MODEL (also enforced in code — see core/config_loader.py):
+# - mode defaults to paper and can ONLY be changed by manually editing this
+#   file. No code path, agent, or LLM can set it (load_account refuses
+#   programmatic overrides of mode/risk disclosure).
+# - mode: live requires risk_disclosure_accepted: true plus the timestamp
+#   below. If it is false, every live order is refused regardless of any
+#   other setting.
+# - MT5 credentials stay in this file, per-account, and are never logged.
+user_id: example_user
+broker: mt5
+mode: paper
+auto_trade: off  # off | paper | live (edit this file by hand; never settable by code or LLM)
+risk_disclosure_accepted: false
+risk_disclosure_accepted_at: null
+daily_drawdown_limit_pct: 3.0
+weekly_drawdown_limit_pct: 6.0
+mt5_login: "REPLACE_ME"
+mt5_password: "REPLACE_ME"
+mt5_server: "REPLACE_ME"

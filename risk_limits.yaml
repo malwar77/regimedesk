@@ -1,0 +1,7 @@
+# RegimeDesk per-instrument risk limits.
+# These are the RiskManager's hard limits — enforced in code, never in prompts.
+# Positions are validated against these BEFORE any broker call (paper or live).
+max_risk_pct_per_trade: 1.0
+max_position_size: 10.0
+max_daily_trades: 10
+required_stop_loss: true
