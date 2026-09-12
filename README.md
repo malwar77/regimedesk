@@ -1,5 +1,7 @@
 # RegimeDesk
 
+[![tests](https://github.com/malwar77/regimedesk/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/malwar77/regimedesk/actions/workflows/tests.yml)
+
 A fact-based market regime / technical analysis desk with a trend-following
 signal core, strict risk management in code, and OPTIONAL per-user MT5
 execution behind an explicit, user-controlled live opt-in.
