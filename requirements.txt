@@ -4,5 +4,6 @@
 # research/ package (ported research swarm: data pipeline + HMM regime engine)
 pandas>=2.0
 numpy>=1.24
+pyyaml>=6.0
 # Dev/testing:
 pytest
