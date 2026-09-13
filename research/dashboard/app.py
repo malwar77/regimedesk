@@ -33,15 +33,18 @@ def main() -> None:
     # Custom CSS
     st.markdown("""
     <style>
+    /* terminal-noir theme: black, green (positive), red (risk),
+       blue (information) — matches the core webui.py dashboard */
+    .stApp { background-color: #04070a; color: #c8d6e0; }
     .metric-card {
-        background-color: #f0f2f6;
+        background-color: #0a0f14;
         padding: 1rem;
         border-radius: 0.5rem;
-        border-left: 4px solid #ff6b6b;
+        border-left: 4px solid #00e68a;
     }
-    .status-good { color: #00ff00; }
-    .status-warning { color: #ffff00; }
-    .status-error { color: #ff0000; }
+    .status-good { color: #00e68a; }
+    .status-warning { color: #4da3ff; }
+    .status-error { color: #ff4d5e; }
     </style>
     """, unsafe_allow_html=True)
     

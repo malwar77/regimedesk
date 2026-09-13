@@ -67,6 +67,30 @@ python main.py signal --user example_user     # generate + log proposals (no exe
 python main.py status --user example_user     # read-only status view
 python main.py execute --user example_user --signal-id <id>   # explicit execution attempt
 python -m pytest tests/ -q                    # full test suite
+python main.py web --user example_user        # read-only LAN dashboard
+```
+
+## Web dashboard on your LAN
+
+`python main.py web --user <id>` serves a terminal-style dashboard —
+black background, green/red/blue palette, live status dot, 5-second
+auto-refresh — from a stdlib-only server (no extra dependencies).
+The command prints the URL to open:
+
+```
+this machine:  http://127.0.0.1:8787
+on your LAN:   http://192.168.x.x:8787    <- open from your phone
+```
+
+It shows the current regime, today's signals, journal orders,
+recorded equity, and your kill-switch distance — recorded facts
+only, including losses. It is READ-ONLY by design: execution stays
+behind the RiskManager and the manual live gates; nobody can trade
+from the dashboard. To bind to this machine only, pass
+`--host 127.0.0.1`.
+
+The optional Streamlit research dashboard (`pip install streamlit`,
+`python main.py dashboard`) uses the same dark terminal theme.
 ```
 
 ## New here? Start here

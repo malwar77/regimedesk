@@ -261,6 +261,14 @@ def cmd_status(args):
     print("mode: recorded facts only — real numbers, including losses; "
           "no gain is guaranteed or implied.")
 
+def cmd_web(args):
+    """Serve the read-only dashboard on the LAN. No trade controls."""
+    import webui
+    load_account(args.user)  # fails loudly for unknown accounts
+    webui.serve(args.user, args.host, args.port)
+    return 0
+
+
 def cmd_research(args):
     """Run the overnight research swarm (ported from the standalone
     RegimeDesk build): macro/news, regime, on-chain flow, sentiment,
@@ -423,6 +431,12 @@ def main():
     bt.add_argument("--count", type=int, default=500)
     bt.add_argument("--cost-bps", type=float, default=2.0)
     bt.set_defaults(fn=cmd_backtest)
+
+    wb = sub.add_parser("web", help="read-only web dashboard on your LAN")
+    wb.add_argument("--user", required=True)
+    wb.add_argument("--host", default="0.0.0.0")
+    wb.add_argument("--port", type=int, default=8787)
+    wb.set_defaults(fn=cmd_web)
 
     rs = sub.add_parser("research")
     rs.set_defaults(fn=cmd_research)
