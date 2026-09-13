@@ -1,5 +1,8 @@
 # Core is stdlib-only. Optional runtime dependencies:
 # ccxt  >= 4.0        # live crypto feed (pip install ccxt)
 # MetaTrader5 >= 5.0  # live MT5 execution (Windows, with a running terminal)
+# research/ package (ported research swarm: data pipeline + HMM regime engine)
+pandas>=2.0
+numpy>=1.24
 # Dev/testing:
 pytest

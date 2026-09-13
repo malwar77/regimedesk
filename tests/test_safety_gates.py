@@ -9,6 +9,9 @@ from types import SimpleNamespace
 
 import pytest
 
+TODAY = datetime.now(timezone.utc)
+
+
 from core.config_loader import (AccountConfig, AccountConfigError,
                                  load_account)
 from core.kill_switch import AccountKillSwitch, Journal, evaluate_drawdown
@@ -300,15 +303,15 @@ class TestKillSwitch:
         # blocked_user's journal shows 10000 -> 9600 (4% down, 3% limit)
         j1 = Journal("blocked_user", logs)
         j1.append({"type": "order", "equity_after": 10000.0,
-                   "ts": "2026-09-12T01:00:00+00:00"})
+                   "ts": TODAY.strftime("%Y-%m-%dT") + "01:00:00+00:00"})
         j1.append({"type": "order", "equity_after": 9600.0,
-                   "ts": "2026-09-12T05:00:00+00:00"})
+                   "ts": TODAY.strftime("%Y-%m-%dT") + "05:00:00+00:00"})
         # healthy_user is up
         j2 = Journal("healthy_user", logs)
         j2.append({"type": "order", "equity_after": 10000.0,
-                   "ts": "2026-09-12T01:00:00+00:00"})
+                   "ts": TODAY.strftime("%Y-%m-%dT") + "01:00:00+00:00"})
         j2.append({"type": "order", "equity_after": 10100.0,
-                   "ts": "2026-09-12T05:00:00+00:00"})
+                   "ts": TODAY.strftime("%Y-%m-%dT") + "05:00:00+00:00"})
 
         a1 = load_account("blocked_user", accounts_dir=accounts)
         a2 = load_account("healthy_user", accounts_dir=accounts)
@@ -323,9 +326,9 @@ class TestKillSwitch:
         logs = paper_journal_dir(tmp_path)
         j = Journal("down_bad", logs)
         j.append({"type": "order", "equity_after": 10000.0,
-                   "ts": "2026-09-12T01:00:00+00:00"})
+                   "ts": TODAY.strftime("%Y-%m-%dT") + "01:00:00+00:00"})
         j.append({"type": "order", "equity_after": 9500.0,
-                   "ts": "2026-09-12T05:00:00+00:00"})  # -5% vs 3% limit
+                   "ts": TODAY.strftime("%Y-%m-%dT") + "05:00:00+00:00"})  # -5% vs 3% limit
         account = load_account("down_bad", accounts_dir=accounts)
         paper = OandaPaperBroker()
         result = execute_order(

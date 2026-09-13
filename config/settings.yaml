@@ -1,0 +1,30 @@
+# RegimeDesk global settings
+
+project:
+  name: RegimeDesk
+  version: "0.1.0"
+  mode: paper          # paper only — never live until explicitly approved
+
+schedule:
+  macro_news: "22:30"
+  regime: "23:00"
+  onchain_flow: "23:30"
+  sentiment: "00:30"
+  technical: "01:00"
+  chief_of_staff: "05:30"
+  timezone: "UTC"
+
+data:
+  lookback_days: 90
+  primary_timeframes: ["H1", "H4", "D1"]
+  secondary_source: tradingview   # confirmation only
+
+logging:
+  level: INFO
+  dir: logs/
+  rotate_daily: true
+
+paths:
+  briefs: briefs/
+  state: state/
+  hypothesis_log: logs/hypothesis_graph.jsonl

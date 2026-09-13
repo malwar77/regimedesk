@@ -1,0 +1,11 @@
+ticker,asset_class,sector,thesis,max_risk_pct,notes
+EURUSD,forex,major,long_bias_range,0.75,Core major
+GBPUSD,forex,major,neutral,0.75,High volatility
+USDJPY,forex,major,trend_follow,0.75,BoJ sensitive
+AUDUSD,forex,commodity,risk_on,0.60,China proxy
+USDCAD,forex,commodity,oil_correlated,0.60,
+XAUUSD,forex,metals,safe_haven,0.80,Gold
+BTCUSDT,crypto,l1,trend + onchain,0.75,Bitcoin
+ETHUSDT,crypto,l1,trend + funding,0.70,Ethereum
+SOLUSDT,crypto,l1,high_beta,0.50,Solana - smaller size
+BNBUSDT,crypto,exchange,neutral,0.50,

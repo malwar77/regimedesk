@@ -170,6 +170,27 @@ says so plainly — absolute returns alone are never the headline. A
 backtest is a fact record of the past, not a prediction: live results
 can and do differ.
 
+## Research swarm (ported from the standalone RegimeDesk build)
+
+`python main.py research` runs the overnight research agents in
+schedule order: macro/news (48h economic calendar, historical movers),
+regime (5-state sticky HMM-style classifier: Crash / Bear / Neutral /
+Bull / Euphoria), on-chain flow (netflow / funding / OI / whale
+prints, 3-sigma vs 30-day baseline), sentiment (mention-volume spikes
+vs baseline), technical (HH-HL / LH-LL structure, S/R, equal
+highs-lows), and a Chief of Staff that ranks findings — HIGH only when
+>=2 agents agree AND the regime aligns. It never invents symbols.
+
+All of it lives in the `research/` package and writes markdown briefs
+to `briefs/` and machine state to `state/`. By default the agents run
+on deterministic synthetic/proxy data from `research/data_pipeline.py`
+(paper-mode development data, labeled as such). Output is research
+facts only — never a trade proposal, and the RiskManager gates in
+`core/` remain absolute. The hypothesis log
+(`research/hypothesis_log.py`) records preregistered expectations
+before results exist, so a backtest claim can be checked against what
+was predicted in advance.
+
 ## Testing
 
 Tests cover the EMA/RSI/ATR math against hand-calculated reference values,

@@ -242,6 +242,22 @@ def cmd_status(args):
     print("mode: recorded facts only — real numbers, including losses; "
           "no gain is guaranteed or implied.")
 
+def cmd_research(args):
+    """Run the overnight research swarm (ported from the standalone
+    RegimeDesk build): macro/news, regime, on-chain flow, sentiment,
+    technical, then Chief of Staff ranking. Research facts only —
+    nothing here is a trade proposal or execution."""
+    from research.nightly import run_nightly_research
+    results = run_nightly_research(os.path.dirname(
+        os.path.abspath(__file__)) if False else ".")
+    print("research swarm complete:")
+    for agent in ("macro", "regime", "onchain", "sentiment",
+                  "technical", "chief"):
+        print("  %s: %s" % (agent, "ran" if agent in results else "MISSING"))
+    print("briefs: briefs/ | machine state: state/")
+    print("research output is facts, not trade recommendations")
+
+
 def cmd_backtest(args):
     """Historical replay of the deterministic engine with mandatory
     benchmark comparison. Read-only: touches no account, places nothing."""
@@ -316,6 +332,9 @@ def main():
     bt.add_argument("--count", type=int, default=500)
     bt.add_argument("--cost-bps", type=float, default=2.0)
     bt.set_defaults(fn=cmd_backtest)
+
+    rs = sub.add_parser("research")
+    rs.set_defaults(fn=cmd_research)
 
     args = p.parse_args()
     args.fn(args)
