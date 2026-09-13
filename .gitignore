@@ -7,3 +7,4 @@ freqtrade_integration/config.json
 logs/
 *.db
 .env
+config/accounts/

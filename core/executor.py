@@ -78,6 +78,20 @@ def execute_order(proposal, user_id, broker, risk_manager, kill_switch,
                         "reasons": reasons})
         return {"status": "refused", "stage": "mode_mismatch", "reasons": reasons}
 
+    # Gate 5 (informational, live only): an explicit risk warning is
+    # printed AND journaled before a live order is placed — the human
+    # in the loop keeps seeing, on every single live trade, that this
+    # is real money and losses are possible. It never blocks or
+    # alters the order; it is a warning, not a gate.
+    if account.mode == "live":
+        print("!! LIVE ORDER — REAL MONEY !! instrument=%s side=%s "
+              "size=%s: losses are possible; stops can slip; the kill "
+              "switch limits but does not prevent them."
+              % (order["instrument"], order["side"], order["size"]))
+        journal.append({"type": "live_risk_warning",
+                        "instrument": order["instrument"],
+                        "side": order["side"], "size": order["size"]})
+
     result = broker.place_order(order)
     if result.get("status") == "filled":
         journal.append({

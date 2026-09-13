@@ -197,6 +197,33 @@ was predicted in advance.
 from `config/risk_limits.yaml` — `dry_run` is hardcoded to true and
 the config is a generated artifact (gitignored).
 
+## Going live (real money) — read this first
+
+Live mode is supported but deliberately hard, because losing real
+money is easy and the gates exist to make it harder:
+
+1. `python main.py go-live --account <name>` prints the full risk
+   disclosure and audits every live gate (mode, disclosure acceptance
+   + timestamp, drawdown kill-switch sanity, MT5 credentials,
+   auto_trade setting).
+2. If — and only if — you accept the risks, you enable live mode by
+   editing the account YAML BY HAND: `mode: live`,
+   `risk_disclosure_accepted: true`, `risk_disclosure_accepted_at:
+   <date>`, and `auto_trade: live` for automated execution. These are
+   protected fields: no command, agent or automation can set them.
+3. Re-run `go-live` until all gates pass. Every live order then
+   prints AND journals an explicit `!! LIVE ORDER — REAL MONEY !!`
+   risk warning; the per-account drawdown kill switch stays armed,
+   and the RiskManager veto chain is unchanged for live trades.
+
+Risks you accept by going live: total loss of capital; leverage
+magnifies losses; slippage and gaps make live fills worse than
+paper, and stops can be gapped through; broker/VPS/network outages
+can leave positions unmanaged; the kill switch limits but does not
+prevent losses; the LLM component is advisory-only and can never
+create, resize or approve a trade. Backtest and paper results do
+not predict live performance.
+
 ## Testing
 
 Tests cover the EMA/RSI/ATR math against hand-calculated reference values,

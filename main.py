@@ -274,6 +274,42 @@ def cmd_dashboard(args):
         "research/dashboard/app.py"])
 
 
+def cmd_go_live(args):
+    """Live-trading readiness wizard. Shows the full risk disclosure
+    and audits every live gate for the account. It can NEVER switch
+    an account to live: mode / risk_disclosure_accepted / auto_trade
+    are protected fields only a human can set by editing the YAML.
+    Re-run any time to re-audit an account."""
+    import sys
+    from core.config_loader import load_account
+    from core.live_readiness import LiveReadiness, RISK_DISCLOSURE
+    account = load_account(args.account)
+    lr = LiveReadiness(account)
+    print()
+    for line in RISK_DISCLOSURE:
+        print(line)
+    print()
+    print("live-readiness audit for account %r:" % args.account)
+    for name, ok, detail in lr.checks():
+        print("  [%s] %s — %s" % ("ok" if ok else "FAIL", name, detail))
+    print()
+    if lr.ready:
+        print("ALL LIVE GATES PASS. Every live order will additionally")
+        print("print and journal an explicit risk warning. Trade small:")
+        print("the kill switch limits damage but does not prevent it.")
+        return 0
+    print("NOT READY: %d gate(s) above still fail."
+          % sum(1 for _, ok, _ in lr.checks() if not ok))
+    print("To go live, edit the account YAML BY HAND:")
+    print("  mode: live")
+    print("  risk_disclosure_accepted: true")
+    print("  risk_disclosure_accepted_at: <today's date>")
+    print("  auto_trade: live            # only if you want auto-execution")
+    print("Then re-run: python main.py go-live --account %s" % args.account)
+    print("No command, agent or automation will make these edits for you.")
+    return 1
+
+
 def cmd_backtest(args):
     """Historical replay of the deterministic engine with mandatory
     benchmark comparison. Read-only: touches no account, places nothing."""
@@ -354,6 +390,10 @@ def main():
 
     db = sub.add_parser("dashboard")
     db.set_defaults(fn=cmd_dashboard)
+
+    gl = sub.add_parser("go-live")
+    gl.add_argument("--account", required=True)
+    gl.set_defaults(fn=cmd_go_live)
 
     args = p.parse_args()
     args.fn(args)
