@@ -3,6 +3,7 @@ __pycache__/
 .pytest_cache/
 briefs/
 state/
+freqtrade_integration/config.json
 logs/
 *.db
 .env

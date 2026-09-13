@@ -191,6 +191,12 @@ facts only — never a trade proposal, and the RiskManager gates in
 before results exist, so a backtest claim can be checked against what
 was predicted in advance.
 
+`python main.py dashboard` launches the optional Streamlit desk UI
+(read-only view over briefs/ and state/; `pip install streamlit`).
+`research/freqtrade_sync.py` regenerates the Freqtrade dry-run config
+from `config/risk_limits.yaml` — `dry_run` is hardcoded to true and
+the config is a generated artifact (gitignored).
+
 ## Testing
 
 Tests cover the EMA/RSI/ATR math against hand-calculated reference values,

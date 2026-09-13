@@ -1,0 +1,57 @@
+# RegimeDesk - Hard Risk Limits (Forex + Crypto)
+# These rules have absolute veto power over any signal
+
+account:
+  starting_equity: 10000
+  base_currency: USD
+
+position_sizing:
+  risk_per_trade_pct: 0.75
+  max_position_size_pct: 8.0
+  kelly_fraction: 0.25
+
+drawdown:
+  max_daily_pct: 2.0
+  max_weekly_pct: 5.0
+  max_monthly_pct: 10.0
+  recovery_mode: true
+
+exposure:
+  max_concurrent_positions: 5
+  max_forex_positions: 4
+  max_crypto_positions: 3
+  max_correlated_exposure_pct: 12.0
+  correlation_groups:
+    - [EURUSD, GBPUSD, EURGBP]
+    - [USDJPY, AUDJPY, NZDJPY]
+    - [BTCUSDT, ETHUSDT]
+    - [XAUUSD, XAGUSD]
+
+forex:
+  max_leverage: 10
+  avoid_news_minutes_before: 15
+  avoid_news_minutes_after: 10
+  max_spread_pips: 3.0
+  weekend_flat: true
+
+crypto:
+  max_leverage_perps: 5
+  max_funding_rate_abs: 0.0015
+  avoid_funding_window_minutes: 20
+  max_slippage_pct: 0.25
+
+orders:
+  use_stop_loss: true
+  default_sl_atr_multiplier: 1.5
+  default_tp_rr: 2.0
+  trailing_stop: false
+  time_stop_hours: 48
+
+kill_switch:
+  enabled: true
+  triggers:
+    - daily_drawdown
+    - weekly_drawdown
+    - consecutive_losses: 5
+    - broker_connection_loss
+  action: "close_all_and_pause"

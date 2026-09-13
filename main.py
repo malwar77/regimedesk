@@ -258,6 +258,22 @@ def cmd_research(args):
     print("research output is facts, not trade recommendations")
 
 
+def cmd_dashboard(args):
+    """Launch the Streamlit research dashboard (optional: pip install
+    streamlit). Read-only view over briefs/ and state/ — research
+    facts only, never a trading surface."""
+    try:
+        import streamlit  # noqa: F401
+    except ImportError:
+        print("streamlit is not installed: pip install streamlit")
+        print("then: streamlit run research/dashboard/app.py")
+        return 1
+    import subprocess, sys
+    return subprocess.call([
+        sys.executable, "-m", "streamlit", "run",
+        "research/dashboard/app.py"])
+
+
 def cmd_backtest(args):
     """Historical replay of the deterministic engine with mandatory
     benchmark comparison. Read-only: touches no account, places nothing."""
@@ -335,6 +351,9 @@ def main():
 
     rs = sub.add_parser("research")
     rs.set_defaults(fn=cmd_research)
+
+    db = sub.add_parser("dashboard")
+    db.set_defaults(fn=cmd_dashboard)
 
     args = p.parse_args()
     args.fn(args)
