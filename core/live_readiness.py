@@ -45,8 +45,26 @@ RISK_DISCLOSURE: Tuple[str, ...] = (
 class LiveReadiness:
     """Audit one account against every live gate. Read-only."""
 
-    def __init__(self, account) -> None:
+    # a live gate only passes with real DEMO evidence behind it:
+    # at least PAPER_MIN_ORDERS paper orders spanning at least
+    # PAPER_MIN_DAYS days. Young accounts have no track record —
+    # the audit refuses to bless a live switch without one.
+    PAPER_MIN_ORDERS = 30
+    PAPER_MIN_DAYS = 30.0
+
+    def __init__(self, account, journal_dir: str = "logs") -> None:
         self.account = account
+        self.journal_dir = journal_dir
+
+    def _paper_history(self) -> Tuple[int, float]:
+        try:
+            from .kill_switch import Journal
+            from .seasons import paper_track_record
+            entries = Journal(self.account.user_id,
+                              self.journal_dir).entries()
+            return paper_track_record(entries)
+        except Exception:
+            return 0, 0.0
 
     def checks(self) -> List[Tuple[str, bool, str]]:
         """Ordered list of (name, passed, human detail)."""
@@ -58,6 +76,18 @@ class LiveReadiness:
             acc.mode == "live",
             "currently %r — set `mode: live` by hand in the account "
             "YAML to go live" % acc.mode))
+
+        if acc.mode == "live":
+            # only demand DEMO evidence when the live gate is actually
+            # being attempted
+            n, days = self._paper_history()
+            out.append((
+                "demo track record (>= %d paper orders over >= %.0f days)"
+                % (self.PAPER_MIN_ORDERS, self.PAPER_MIN_DAYS),
+                n >= self.PAPER_MIN_ORDERS and days >= self.PAPER_MIN_DAYS,
+                "%d paper orders spanning %.1f days — run the account in "
+                "paper mode and build a real DEMO season first"
+                % (n, days)))
 
         out.append((
             "risk disclosure accepted",

@@ -293,6 +293,7 @@ select { font-family:var(--mono); font-size:13px; background:var(--panel2);
   padding:5px 8px; }
 @media (prefers-reduced-motion:reduce) { .live-dot { animation:none; } }
 </style></head><body>
+<div id="seasons" class="sub" style="padding:6px 14px">loading seasons…</div>
 <header><div>
   <h1><span class="live-dot"></span>REGIME<span class="desk">DESK</span> <span class="sub">live terminal</span></h1>
   <div class="sub">live candles from keyless public APIs &middot; charts: TradingView Lightweight Charts (Apache-2.0, vendored) &middot; execution stays behind the RiskManager</div>
@@ -415,7 +416,24 @@ refresh(); loadChart(); loadTickers();
 setInterval(refresh, 5000);
 setInterval(loadTickers, 30000);
 setInterval(loadChart, 60000);
-</script></body></html>"""
+</script><script>
+async function loadSeasons(){
+  try{
+    const el = document.getElementById("seasons");
+    if (!el) return;
+    const d = await (await fetch("/api/seasons")).json();
+    if (!(d.seasons||[]).length){ el.textContent =
+      "seasons: none yet — run paper mode to start a DEMO season"; return; }
+    el.innerHTML = "seasons: " + d.seasons.map(s =>
+      `<span style="margin-right:14px">` +
+      (s.label==="REAL MONEY" ? `<span class="neg">` : ``) +
+      `#${s.season} ${s.label} ${s.start.slice(0,10)}&rarr;${s.end.slice(0,10)} &middot; ${s.orders} orders &middot; span ${s.span_days.toFixed(0)}d` +
+      (s.label==="REAL MONEY" ? `</span>` : ``) + `</span>`).join("");
+  }catch(e){ /* keep old text */ }
+}
+loadSeasons(); setInterval(loadSeasons, 60000);
+</script>
+</body></html>"""
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -434,6 +452,17 @@ class _Handler(BaseHTTPRequestHandler):
         elif path == "/api/status":
             payload = build_status(self.user_id)
             body = json.dumps(payload, default=str).encode()
+            self._json(body)
+        elif path == "/api/seasons":
+            try:
+                from core.kill_switch import Journal
+                from core.seasons import compute_seasons
+                seasons = compute_seasons(
+                    Journal(self.user_id).entries())
+                body = json.dumps({"seasons": seasons},
+                                  default=str).encode()
+            except Exception as exc:
+                body = json.dumps({"seasons": [], "error": str(exc)}).encode()
             self._json(body)
         elif path == "/api/candles":
             params = dict(p.split("=", 1) for p in query.split("&")

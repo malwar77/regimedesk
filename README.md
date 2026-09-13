@@ -2,7 +2,14 @@
 
 [![tests](https://github.com/malwar77/regimedesk/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/malwar77/regimedesk/actions/workflows/tests.yml)
 
-A fact-based market regime / technical analysis desk with a trend-following
+> ⚠️ **EXPERIMENTAL — educational prototype.** Young project, zero
+> real-money track record, no published walk-forward results yet.
+> ICT/candlestick/S-R context modules are UNVALIDATED ideas included
+> for study — no trading edge is claimed for them. The safety gates
+> are a design contract, not proven safety. Do not risk money you
+> cannot lose.
+
+A market regime / technical analysis desk with a trend-following
 signal core, strict risk management in code, and OPTIONAL per-user MT5
 execution behind an explicit, user-controlled live opt-in.
 

@@ -6,6 +6,7 @@ warning is informational only (it must not block or alter orders)."""
 import io
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 from contextlib import redirect_stdout
 from pathlib import Path
 
@@ -54,10 +55,25 @@ def test_paper_account_is_not_ready():
     assert "risk disclosure accepted" in names
 
 
+def _seed_paper_journal(journal_dir, user_id, n, days):
+    """n paper orders spanning `days` days in a real journal file."""
+    from core.kill_switch import Journal
+    t0 = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    j = Journal(user_id, journal_dir)
+    for i in range(n):
+        j.append({"type": "order", "mode": "paper",
+                  "ts": (t0 + timedelta(
+                      hours=24 * days * i / max(1, n - 1))).isoformat()})
+
+
 def test_fully_live_account_is_ready():
+    import tempfile
+    jd = tempfile.mkdtemp()
+    _seed_paper_journal(jd, "u", 30, 31)
     lr = LiveReadiness(make_account(mode="live",
                                     risk_disclosure_accepted=True,
-                                    risk_disclosure_accepted_at="2026-09-13"))
+                                    risk_disclosure_accepted_at="2026-09-13"),
+                       journal_dir=jd)
     assert lr.ready is True
     rep = lr.report()
     assert rep["ready"] is True
@@ -156,3 +172,33 @@ def test_paper_order_prints_no_live_warning(tmp_path, capsys):
                            journal_dir=str(logs))
     assert result["status"] == "filled"
     assert "REAL MONEY" not in capsys.readouterr().out
+
+
+def test_live_gate_requires_demo_track_record():
+    """No DEMO history -> the audit refuses the live gate, even with
+    every human-only YAML field correctly set."""
+    import tempfile
+    jd = tempfile.mkdtemp()
+    acc = make_account(mode="live", risk_disclosure_accepted=True,
+                       risk_disclosure_accepted_at="2026-09-13")
+    checks = {n: ok for n, ok, _ in LiveReadiness(acc, journal_dir=jd).checks()}
+    gate = [k for k in checks if "demo track record" in k][0]
+    assert checks[gate] is False
+
+    # too few orders / too short a span still fails
+    _seed_paper_journal(jd, "u", 5, 3)
+    checks = {n: ok for n, ok, _ in LiveReadiness(acc, journal_dir=jd).checks()}
+    assert checks[gate] is False
+
+    # 30 orders over 31 days passes
+    _seed_paper_journal(jd, "u", 30, 31)
+    checks = {n: ok for n, ok, _ in LiveReadiness(acc, journal_dir=jd).checks()}
+    assert checks[gate] is True
+
+
+def test_paper_account_never_demands_demo_evidence():
+    """Paper accounts keep the fast path: no gate, no nagging."""
+    import tempfile
+    checks = {n: ok for n, ok, _ in
+              LiveReadiness(make_account(), journal_dir=tempfile.mkdtemp()).checks()}
+    assert not any("demo track record" in k for k in checks)

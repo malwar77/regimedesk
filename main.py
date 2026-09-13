@@ -357,6 +357,32 @@ def cmd_go_live(args):
     return 1
 
 
+def cmd_seasons(args):
+    """List DEMO and REAL MONEY seasons for an account, derived from
+    the append-only journal of executed orders. Read-only: nothing
+    here trades, switches modes, or invents history. A REAL MONEY
+    season can only exist if mode: live was set by hand in the YAML."""
+    from core.kill_switch import Journal
+    from core.seasons import compute_seasons
+    journal = Journal(args.account)
+    seasons = compute_seasons(journal.entries())
+    print("trading seasons for account %r:" % args.account)
+    if not seasons:
+        print("  none — no executed orders journaled yet.")
+        print("  run the account in paper mode to start a DEMO season.")
+        return 0
+    for s in seasons:
+        print("  %d. [%s] %s -> %s | %d orders | span %.1f days"
+              % (s["season"], s["label"], s["start"][:10], s["end"][:10],
+                 s["orders"], s["span_days"]))
+    demo = sum(s["orders"] for s in seasons if s["mode"] == "paper")
+    live = sum(s["orders"] for s in seasons if s["mode"] == "live")
+    print("demo orders: %d | real-money orders: %d" % (demo, live))
+    print("a REAL MONEY season only exists if mode: live was set by hand")
+    print("paper seasons do not predict live performance")
+    return 0
+
+
 def cmd_backtest(args):
     """Historical replay of the deterministic engine with mandatory
     benchmark comparison. Read-only: touches no account, places nothing."""
@@ -443,6 +469,12 @@ def main():
 
     db = sub.add_parser("dashboard")
     db.set_defaults(fn=cmd_dashboard)
+
+    se = sub.add_parser("seasons",
+                        help="list DEMO / REAL MONEY seasons from the "
+                             "journal (read-only track record)")
+    se.add_argument("--account", default="demo")
+    se.set_defaults(fn=cmd_seasons)
 
     gl = sub.add_parser("go-live")
     gl.add_argument("--account", required=True)
