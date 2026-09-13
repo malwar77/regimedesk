@@ -67,7 +67,17 @@ python main.py signal --user example_user     # generate + log proposals (no exe
 python main.py status --user example_user     # read-only status view
 python main.py execute --user example_user --signal-id <id>   # explicit execution attempt
 python -m pytest tests/ -q                    # full test suite
-python main.py web --user example_user        # read-only LAN dashboard
+python main.py web --user example_user        # live LAN dashboard (data-only)
+
+The dashboard is a live data-only terminal:
+
+- candlestick charts (TradingView Lightweight Charts, Apache-2.0,
+  vendored into the repo) for BTC/ETH/SOL with timeframe buttons
+- live candles come from keyless public APIs — Binance first, Kraken
+  fallback (stdlib urllib, no API keys, no third-party deps in the
+  core); if both fail you get an honest error, never synthetic data
+- live ticker strip with 24h change per instrument
+- there are NO order buttons: execution stays behind the RiskManager
 ```
 
 ## Web dashboard on your LAN
@@ -417,3 +427,8 @@ reference levels, position sizing, trend functions, the risk-disclosure
 gate (false blocks all live orders even with `mode: live`), per-account
 kill-switch isolation, no-lookahead replay on a recorded live session, and
 feature-validation flagging of a synthetic noise feature.
+## Third-party software
+
+- TradingView Lightweight Charts v4.2.3 (Apache-2.0) — vendored
+  unmodified alongside the dashboard assets. Charts render locally
+  in your browser; no TradingView servers are contacted.

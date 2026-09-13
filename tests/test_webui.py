@@ -79,9 +79,121 @@ class PageDesignTests(unittest.TestCase):
         self.assertIn("@keyframes pulse", webui.PAGE)
         self.assertIn("setInterval(refresh, 5000)", webui.PAGE)
 
-    def test_read_only_stance(self):
-        self.assertIn("read-only", webui.PAGE)
+    def test_execution_boundary_stated(self):
+        self.assertIn("execution stays behind the RiskManager", webui.PAGE)
         self.assertNotIn("/api/trade", webui.PAGE)
+
+    def test_live_market_layer_present(self):
+        self.assertIn("lightweight-charts.standalone.production.js",
+                      webui.PAGE)
+        self.assertIn("addCandlestickSeries", webui.PAGE)
+        self.assertIn("/api/candles", webui.PAGE)
+
+
+class LiveDataTests(unittest.TestCase):
+    """Live market layer: keyless sources, TTL cache, honest errors,
+    fallback chain. All network calls are mocked — no real requests
+    in the test suite."""
+
+    def setUp(self):
+        webui._market_cache.clear()
+
+    def test_binance_first(self):
+        from unittest.mock import patch
+
+        def fake_binance(base, quote, tf, limit):
+            return [{"time": 1, "open": 1, "high": 1, "low": 1,
+                     "close": 2, "volume": 5}]
+        with patch.object(webui, "_binance_candles", fake_binance), \
+                patch.object(webui, "_kraken_candles",
+                             side_effect=AssertionError("kraken used")):
+            out = webui.fetch_candles("BTC_USD", "1h", 10)
+            self.assertEqual(out["source"], "binance")
+            self.assertEqual(out["candles"][0]["close"], 2)
+
+    def test_kraken_fallback(self):
+        from unittest.mock import patch
+
+        def boom(base, quote, tf, limit):
+            raise RuntimeError("451 geo-blocked")
+        fake = [{"time": 1, "open": 1, "high": 1, "low": 1,
+                 "close": 3, "volume": 5}]
+        with patch.object(webui, "_binance_candles", boom), \
+                patch.object(webui, "_kraken_candles",
+                             lambda b, q, tf, limit: fake):
+            out = webui.fetch_candles("BTC_USD", "1h", 10)
+            self.assertEqual(out["source"], "kraken")
+            self.assertEqual(out["candles"][0]["close"], 3)
+
+    def test_all_sources_down_raises(self):
+        from unittest.mock import patch
+
+        def boom(base, quote, tf, limit):
+            raise RuntimeError("down")
+        with patch.object(webui, "_binance_candles", boom), \
+                patch.object(webui, "_kraken_candles", boom):
+            with self.assertRaises(RuntimeError) as ctx:
+                webui.fetch_candles("BTC_USD", "1h", 10)
+            # honest error naming the sources
+            self.assertIn("binance", str(ctx.exception))
+            self.assertIn("kraken", str(ctx.exception))
+
+    def test_ttl_cache_no_refetch(self):
+        from unittest.mock import patch
+        calls = []
+
+        def fake_binance(base, quote, tf, limit):
+            calls.append(1)
+            return [{"time": 1, "open": 1, "high": 1, "low": 1,
+                     "close": 2, "volume": 5}]
+        with patch.object(webui, "_binance_candles", fake_binance):
+            webui.fetch_candles("BTC_USD", "1h", 10)
+            webui.fetch_candles("BTC_USD", "1h", 10)
+        self.assertEqual(len(calls), 1)
+
+    def test_kraken_pair_mapping(self):
+        # BTC maps to Kraken's XBT naming
+        import inspect
+        self.assertIn("XBTUSD", inspect.getsource(webui._kraken_candles))
+
+
+class LiveEndpointTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.server = webui.ThreadingHTTPServer(("127.0.0.1", 8893),
+                                               webui._Handler)
+        webui._Handler.user_id = "testuser"
+        threading.Thread(target=cls.server.serve_forever,
+                         daemon=True).start()
+        time.sleep(0.2)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.server.server_close()
+
+    def test_chart_library_served(self):
+        js = urllib.request.urlopen(
+            "http://127.0.0.1:8893/static/"
+            "lightweight-charts.standalone.production.js").read()
+        self.assertGreater(len(js), 100000)
+        self.assertIn(b"TradingView", js)
+
+    def test_candles_endpoint_honest_503_when_offline(self):
+        from unittest.mock import patch
+
+        def boom(base, quote, tf, limit):
+            raise RuntimeError("down")
+        with patch.object(webui, "_binance_candles", boom), \
+                patch.object(webui, "_kraken_candles", boom):
+            try:
+                urllib.request.urlopen(
+                    "http://127.0.0.1:8893/api/candles")
+                self.fail("expected HTTP 503")
+            except urllib.error.HTTPError as e:
+                self.assertEqual(e.code, 503)
+                body = json.loads(e.read().decode())
+                self.assertIn("unavailable", body["error"])
 
 
 class ServerTests(unittest.TestCase):
