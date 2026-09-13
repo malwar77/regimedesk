@@ -224,6 +224,26 @@ prevent losses; the LLM component is advisory-only and can never
 create, resize or approve a trade. Backtest and paper results do
 not predict live performance.
 
+## Morning WhatsApp report (status beacon)
+
+The agent (Base44 Superagent) can send you a morning WhatsApp report
+with balance, open positions, kill-switch distance and a watchdog
+alert if a bot stops checking in. The bot on this host feeds it:
+
+1. Set env vars (or pass flags): `STATUS_URL` (the ingest endpoint
+   the agent gives you) and `STATUS_TOKEN` (the shared token).
+2. Run `python main.py report --account <name>` — prints the status
+   snapshot; with STATUS_URL/STATUS_TOKEN set it POSTs it too.
+3. Schedule it on the host before the agent's 7:30am ET run, e.g.
+   cron at 07:15 America/New_York:
+   `15 7 * * * cd /path/to/regimedesk && python main.py report --account <name>`
+
+The report is strictly advisory and read-only: it never places,
+approves or alters trades. The RiskManager and kill switch on this
+host stay authoritative. Payload fields: project, account, mode,
+generated_at, balance, daily_pnl, open_positions, kill_switch
+(daily/weekly % used, blocked), host.
+
 ## Testing
 
 Tests cover the EMA/RSI/ATR math against hand-calculated reference values,

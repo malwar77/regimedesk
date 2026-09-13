@@ -274,6 +274,26 @@ def cmd_dashboard(args):
         "research/dashboard/app.py"])
 
 
+def cmd_report(args):
+    """Build a status snapshot for this account and optionally POST it
+    to the Superagent ingest endpoint (morning WhatsApp report).
+    Read-only: never places, approves or alters trades. Without
+    --post-url (or env STATUS_URL) it just prints the payload."""
+    import json as _json
+    from core.reporting import build_status, post_status
+    payload = build_status(args.account)
+    print(_json.dumps(payload, indent=2, default=str))
+    if not args.post_url:
+        print("no --post-url / STATUS_URL set: payload printed only")
+        return 0
+    if not args.token:
+        print("no --token / STATUS_TOKEN set: refusing to POST")
+        return 1
+    ok, code, body = post_status(payload, args.post_url, args.token)
+    print("POST %s -> %s %s" % ("ok" if ok else "FAILED", code, body[:200]))
+    return 0 if ok else 1
+
+
 def cmd_go_live(args):
     """Live-trading readiness wizard. Shows the full risk disclosure
     and audits every live gate for the account. It can NEVER switch
@@ -394,6 +414,12 @@ def main():
     gl = sub.add_parser("go-live")
     gl.add_argument("--account", required=True)
     gl.set_defaults(fn=cmd_go_live)
+
+    rp = sub.add_parser("report")
+    rp.add_argument("--account", required=True)
+    rp.add_argument("--post-url", default=os.environ.get("STATUS_URL", ""))
+    rp.add_argument("--token", default=os.environ.get("STATUS_TOKEN", ""))
+    rp.set_defaults(fn=cmd_report)
 
     args = p.parse_args()
     args.fn(args)

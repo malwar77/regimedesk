@@ -1,0 +1,13 @@
+# RegimeDesk account config — copy to config/accounts/<your-id>.yaml
+# PROTECTED FIELDS (human-edited only, never set by code/agent):
+#   mode, risk_disclosure_accepted, risk_disclosure_accepted_at,
+#   auto_trade
+user_id: example
+mode: paper
+broker: mt5
+auto_trade: paper
+daily_drawdown_limit_pct: 3.0
+weekly_drawdown_limit_pct: 6.0
+# mt5_login: "12345"
+# mt5_password: "secret"
+# mt5_server: "YourBroker-Server"
