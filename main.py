@@ -143,6 +143,25 @@ def cmd_doctor(args):
                       % (f, acct.mode,
                          acct.extra.get("auto_trade", "off"),
                          acct.risk_disclosure_accepted))
+                # credential status — presence only, values never shown
+                def cred_state(v):
+                    if v:
+                        return "set (%d chars)" % len(str(v))
+                    return "MISSING"
+                print("        credentials: mt5_login=%s mt5_password=%s "
+                      "mt5_server=%s (file or MT5_* env; never logged)"
+                      % (cred_state(acct.mt5_login),
+                         cred_state(acct.mt5_password),
+                         cred_state(acct.mt5_server)))
+                try:
+                    from core.config_loader import llm_settings
+                    settings = llm_settings(acct)
+                    print("        llm: provider=%s model=%s url=%s "
+                          "(advisory only, negative-only power)"
+                          % (settings["provider"], settings["model"],
+                             settings["url"]))
+                except AccountConfigError as exc:
+                    report("account llm config %s" % f, False, str(exc))
             except AccountConfigError as exc:
                 report("account config %s" % f, False, str(exc))
 

@@ -151,6 +151,62 @@ RegimeDesk runs natively on Windows — no WSL needed. Open PowerShell:
    MT5 terminal. Live still requires the manual per-account opt-in
    described in the safety model; the install does not change that.
 
+## Connecting your API keys and the LLM brain
+
+Two knobs make auto-trading smooth for any user, and neither can
+relax a single safety gate:
+
+**Broker credentials (optional — paper mode needs none).** Put them
+in your account file (`config/accounts/<you>.yaml`):
+
+```yaml
+mt5_login: "your_login"
+mt5_password: "your_password"
+mt5_server: "your_broker_server"
+```
+
+…or leave `REPLACE_ME` in the file and export environment variables
+instead (`MT5_LOGIN`, `MT5_PASSWORD`, `MT5_SERVER`; the file value
+wins, env is the fallback). For live OANDA market data export
+`OANDA_API_KEY` (optional). Credentials are never logged, and
+`python main.py doctor` shows only *presence* (e.g. `mt5_login=set
+(9 chars)`), never values.
+
+**LLM brain (advisory layer).** The default is Ollama — fully local,
+free, no API keys:
+
+```
+ollama pull llama3.2
+python main.py doctor        # confirms server + model
+```
+
+Per account you can choose a provider in the same YAML (all optional):
+
+```yaml
+llm_provider: ollama   # ollama (default) | openai | off
+llm_model: llama3.2
+llm_url: http://localhost:11434
+```
+
+`openai` uses `OPENAI_API_KEY` from your environment (optional; if the
+key is missing it degrades to local reasoning, never crashes). `off`
+forces the deterministic local reasoner only. Whichever provider you
+pick, the LLM only annotates proposals and can only *skip* a signal
+("against") — it can never create, resize or approve a trade, and the
+RiskManager veto chain is unchanged.
+
+**Smooth auto-trading** then runs exactly as designed: set
+`auto_trade: paper` by hand in your account file, then
+
+```
+python main.py auto --user <you>            # one cycle
+# or loop it from cron:  */5 * * * * cd /path/to/regimedesk && .venv/bin/python main.py auto --user <you>
+```
+
+None of this touches live mode: `auto_trade: live` additionally
+requires `mode: live` + `risk_disclosure_accepted: true` in the same
+file, and the executor enforces both independently.
+
 ## Live market data
 
 `DataPipeline(live=True, source="oanda")` uses the OANDA v3 REST candles

@@ -48,9 +48,15 @@ _SYSTEM_PROMPT = (
 
 
 class LLMBrain:
+    PROVIDERS = ("auto", "ollama", "openai", "off")
+
     def __init__(self, api_key=None, model="gpt-4o-mini", timeout=25,
                  api_url="https://api.openai.com/v1/chat/completions",
-                 ollama_url=None, ollama_model=None):
+                 ollama_url=None, ollama_model=None, provider="auto"):
+        if provider not in self.PROVIDERS:
+            raise ValueError("provider must be one of %s (got %r)"
+                             % (self.PROVIDERS, provider))
+        self.provider = provider
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
         self.model = model  # OpenAI model (only used if api_key is set)
         self.timeout = timeout
@@ -81,10 +87,29 @@ class LLMBrain:
         Never mutates the proposal. Never raises — any backend failure
         degrades to the deterministic local annotation."""
         facts = self._facts(proposal)
-        if self.api_key:  # optional; Ollama-first is the default
-            return self._annotate_via(
-                lambda: self._call_api(facts), "openai:%s" % self.model,
-                facts, "LLM API call failed")
+        provider = self.provider
+        if provider == "off":
+            # explicitly disabled: deterministic local reasoner only,
+            # even if Ollama or an API key happens to be available
+            ann = self._validate(self._local(facts),
+                                 source="local_deterministic")
+            self.last_source = ann["source"]
+            return ann
+        if provider == "openai" or (provider == "auto"
+                                    and self.api_key):
+            # explicit OpenAI choice, or auto with a key present
+            if self.api_key:
+                return self._annotate_via(
+                    lambda: self._call_api(facts),
+                    "openai:%s" % self.model, facts, "LLM API call failed")
+            if provider == "openai":
+                ann = self._validate(self._local(facts),
+                                     source="local_deterministic")
+                ann["notes"] = ann["notes"] + [
+                    "llm_provider is openai but OPENAI_API_KEY is not set; "
+                    "using local reasoning"]
+                self.last_source = ann["source"]
+                return ann
         if self._ollama_available():  # default path: local model, no key
             return self._annotate_via(
                 lambda: self._call_ollama(facts),

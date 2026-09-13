@@ -7,7 +7,7 @@
 # - mode: live requires risk_disclosure_accepted: true plus the timestamp
 #   below. If it is false, every live order is refused regardless of any
 #   other setting.
-# - MT5 credentials stay in this file, per-account, and are never logged.
+# - Credentials are never logged.
 user_id: example_user
 broker: mt5
 mode: paper
@@ -16,6 +16,18 @@ risk_disclosure_accepted: false
 risk_disclosure_accepted_at: null
 daily_drawdown_limit_pct: 3.0
 weekly_drawdown_limit_pct: 6.0
+
+# --- Credentials: this file OR environment variables ---
+# Leave REPLACE_ME here and export the env vars instead if you prefer
+# (file value wins, env is the fallback; either way nothing is logged):
+#   MT5_LOGIN, MT5_PASSWORD, MT5_SERVER   (live MT5 execution only)
+#   OANDA_API_KEY                          (optional live market data)
 mt5_login: "REPLACE_ME"
 mt5_password: "REPLACE_ME"
 mt5_server: "REPLACE_ME"
+
+# --- LLM brain (advisory only; negative-only power — can skip a signal,
+# never create, resize or approve one; RiskManager stays authoritative) ---
+# llm_provider: ollama   # ollama (default — local, free, no API key) | openai | off
+# llm_model: llama3.2    # any model you pulled, e.g. `ollama pull llama3.2`
+# llm_url: http://localhost:11434

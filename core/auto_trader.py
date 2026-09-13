@@ -14,9 +14,8 @@ execution of that signal. It can never create or enlarge a trade. Risk
 authority stays with risk_manager.py; the drawdown kill switch stays
 per-account. Nothing here relaxes any existing gate.
 """
-from .config_loader import load_account
+from .config_loader import build_llm_brain, load_account
 from .kill_switch import AccountKillSwitch
-from .llm_brain import LLMBrain
 from .signal_engine import generate, log_signal
 from .executor import execute_order
 from .risk_manager import RiskManager
@@ -38,7 +37,7 @@ class AutoTrader:
                               % (ALLOWED_AUTO_TRADE, auto))
         self.auto_trade = auto
         self.risk_manager = risk_manager or RiskManager()
-        self.llm = llm or LLMBrain()
+        self.llm = llm or build_llm_brain(self.account)
         self.kill_switch = AccountKillSwitch(self.account, journal_dir)
         self.balance = accounts_balance
         self._broker_factory = broker_factory or self._default_broker
