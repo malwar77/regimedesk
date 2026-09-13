@@ -69,6 +69,88 @@ python main.py execute --user example_user --signal-id <id>   # explicit executi
 python -m pytest tests/ -q                    # full test suite
 ```
 
+## New here? Start here
+
+You found this repo and want to run it yourself. Here is the honest,
+from-zero path. RegimeDesk is local-first: no cloud account, no signup,
+no API keys needed for the core engine.
+
+**What you get:** a deterministic trend-following signal engine with
+regime classification, cost-aware backtesting, per-account paper
+trading, and a RiskManager that vetoes every order in code. Optional
+LLM annotations run fully local via Ollama (no API keys). Optional
+live MT5 execution exists but is locked behind manual opt-in.
+
+**What you need:** Python 3.11+ and git. The core is stdlib-only;
+`pip install -r requirements.txt` adds pandas/numpy/pyyaml for the
+research package. ccxt / MetaTrader5 are only needed for live data
+feeds and live MT5 execution.
+
+1. Clone and set up:
+   ```
+   git clone https://github.com/malwar77/regimedesk.git
+   cd regimedesk
+   python3 -m venv .venv && source .venv/bin/activate
+   pip install -r requirements.txt
+   python3 -m pytest tests/ -q        # all green = healthy clone
+   ```
+2. Create your account: copy `config/accounts/example_user.yaml` to
+   `config/accounts/<your_name>.yaml`. It starts in *paper* mode —
+   leave it that way while you learn.
+3. Learn the desk (all read-only or paper):
+   ```
+   python main.py doctor                        # setup sanity check
+   python main.py technical                     # daily technical brief
+   python main.py signal --user <your_name>     # proposals only
+   python main.py status --user <your_name>     # account state
+   python main.py backtest --instrument BTC_USD
+   ```
+4. Run the paper loop: `python main.py auto --user <your_name>`
+5. Read **Safety model** above before touching anything else.
+
+**Stay in paper until you can explain the safety model to someone
+else.** Going live is deliberately hard: `python main.py go-live
+--account <name>` audits your account and tells you exactly what you
+must edit by hand — no command ever flips the switch for you.
+
+## Windows installation
+
+RegimeDesk runs natively on Windows — no WSL needed. Open PowerShell:
+
+1. Install Python 3.11+ and git:
+   ```
+   winget install -e Python.Python.3.12
+   winget install -e Git.Git
+   ```
+   (or download from https://www.python.org/downloads and tick
+   "Add python.exe to PATH"). Start a fresh PowerShell afterwards.
+2. Clone and set up:
+   ```
+   git clone https://github.com/malwar77/regimedesk.git
+   cd regimedesk
+   py -m venv .venv
+   .venv\Scripts\Activate.ps1
+   pip install -r requirements.txt
+   python -m pytest tests/ -q
+   ```
+   If Activate.ps1 is blocked, run once:
+   `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
+   (or use `.venv\Scripts\activate.bat` in cmd).
+3. Everywhere the docs say `python3`, use `python` on Windows.
+   Everything else is identical. Create your account the same way:
+   copy `config\accounts\example_user.yaml` to
+   `config\accounts\<your_name>.yaml`.
+4. Morning report beacon (optional): set `AGENT_API_BASE` and
+   `AGENT_API_KEY` in your environment, then schedule with Task
+   Scheduler instead of cron:
+   ```
+   schtasks /Create /SC DAILY /ST 07:15 /TN "RegimeDeskReport" /TR "cmd /c cd /d C:\path\to\regimedesk && .venv\Scripts\python.exe main.py report --account <your_name>"
+   ```
+5. MT5 note: live MT5 execution actually works *best* on Windows —
+   the MetaTrader5 package is Windows-native and needs a running
+   MT5 terminal. Live still requires the manual per-account opt-in
+   described in the safety model; the install does not change that.
+
 ## Live market data
 
 `DataPipeline(live=True, source="oanda")` uses the OANDA v3 REST candles
