@@ -280,17 +280,17 @@ def cmd_report(args):
     Read-only: never places, approves or alters trades. Without
     --post-url (or env STATUS_URL) it just prints the payload."""
     import json as _json
-    from core.reporting import build_status, post_status
+    from core.reporting import build_status, send_beacon
     payload = build_status(args.account)
     print(_json.dumps(payload, indent=2, default=str))
-    if not args.post_url:
-        print("no --post-url / STATUS_URL set: payload printed only")
+    if not args.api_base:
+        print("no --api-base / AGENT_API_BASE set: payload printed only")
         return 0
-    if not args.token:
-        print("no --token / STATUS_TOKEN set: refusing to POST")
+    if not args.api_key:
+        print("no --api-key / AGENT_API_KEY set: refusing to send")
         return 1
-    ok, code, body = post_status(payload, args.post_url, args.token)
-    print("POST %s -> %s %s" % ("ok" if ok else "FAILED", code, body[:200]))
+    ok, detail = send_beacon(payload, args.api_base, args.api_key)
+    print("beacon %s: %s" % ("sent" if ok else "FAILED", detail))
     return 0 if ok else 1
 
 
@@ -417,8 +417,10 @@ def main():
 
     rp = sub.add_parser("report")
     rp.add_argument("--account", required=True)
-    rp.add_argument("--post-url", default=os.environ.get("STATUS_URL", ""))
-    rp.add_argument("--token", default=os.environ.get("STATUS_TOKEN", ""))
+    rp.add_argument("--api-base",
+                    default=os.environ.get("AGENT_API_BASE", ""))
+    rp.add_argument("--api-key",
+                    default=os.environ.get("AGENT_API_KEY", ""))
     rp.set_defaults(fn=cmd_report)
 
     args = p.parse_args()

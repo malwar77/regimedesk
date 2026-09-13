@@ -226,25 +226,28 @@ not predict live performance.
 
 ## Morning WhatsApp report (status beacon)
 
-The agent (Base44 Superagent) can send you a morning WhatsApp report
-with balance, open positions, kill-switch distance and a watchdog
-alert if a bot stops checking in. The bot on this host feeds it:
+The agent (Base44 Superagent) sends a morning WhatsApp report with
+balance, open positions, kill-switch distance and a watchdog alert if
+a bot stops checking in. The bot feeds it via the agent's external
+API (the exact curl examples are in the agent editor's Developer /
+API Docs panel):
 
-1. Set env vars (or pass flags): `STATUS_URL` (the ingest endpoint
-   the agent gives you) and `STATUS_TOKEN` (the shared token).
+1. Set env vars (or pass flags): `AGENT_API_BASE` (the agent's API
+   root, e.g. https://<host>/api/agents/<agent_id>) and
+   `AGENT_API_KEY` (the agent API key, from the editor's Developer
+   panel).
 2. Run `python main.py report --account <name>` — prints the status
-   snapshot; with STATUS_URL/STATUS_TOKEN set it POSTs it too.
-3. Schedule it on the host before the agent's 7:30am ET run, e.g.
-   cron at 07:15 America/New_York:
+   snapshot; with AGENT_API_BASE/AGENT_API_KEY set it also sends a
+   STATUS BEACON message to the agent, which stores it.
+3. Schedule it before the agent's 7:30am ET run, e.g. cron at 07:15
+   America/New_York:
    `15 7 * * * cd /path/to/regimedesk && python main.py report --account <name>`
 
-The report is strictly advisory and read-only: it never places,
-approves or alters trades. The RiskManager and kill switch on this
-host stay authoritative. Payload fields: project, account, mode,
-generated_at, balance, daily_pnl, open_positions, kill_switch
-(daily/weekly % used, blocked), host.
+The beacon and report are strictly advisory and read-only: they
+never place, approve or alter trades. The RiskManager and kill switch
+on this host stay authoritative.
 
-## Testing
+## Testing## Testing
 
 Tests cover the EMA/RSI/ATR math against hand-calculated reference values,
 every candlestick pattern against built OHLC cases, chandelier/SAR/fib

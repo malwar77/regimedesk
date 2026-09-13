@@ -14,8 +14,10 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import core.reporting as reporting
+import core.reporting as core_reporting
 from core.kill_switch import Journal
-from core.reporting import build_status, post_status
+from core.reporting import (_pick_conversation_id, build_status,
+                            send_beacon)
 
 
 class FakeResponse:
@@ -128,44 +130,91 @@ def test_kill_switch_blocked_when_limit_breached(tmp_path):
     assert s["kill_switch"]["blocked"] is True
 
 
-def test_post_status_round_trip(monkeypatch):
-    captured = {}
+def test_pick_conversation_id_shapes():
+    # bare list -> first, default preferred
+    assert _pick_conversation_id(
+        [{"id": "a"}, {"id": "b"}]) == "a"
+    assert _pick_conversation_id(
+        [{"id": "a"}, {"id": "b", "is_default": True}]) == "b"
+    # wrapped dict shapes
+    assert _pick_conversation_id(
+        {"conversations": [{"id": "c"}]}) == "c"
+    assert _pick_conversation_id(
+        {"data": [{"id": "d"}]}) == "d"
+    # single conversation object
+    assert _pick_conversation_id({"id": "e"}) == "e"
+    # nothing usable
+    assert _pick_conversation_id({}) is None
+    assert _pick_conversation_id([]) is None
+
+
+def test_send_beacon_round_trip(monkeypatch):
+    calls = []
 
     def fake_urlopen(req, timeout=None):
-        captured["url"] = req.full_url
-        captured["data"] = json.loads(req.data.decode())
-        captured["timeout"] = timeout
-        return FakeResponse(200, '{"ok": true}')
+        calls.append((req.method, req.full_url, req.data,
+                      req.get_header("Api_key")))
+        if req.full_url.endswith("/conversations"):
+            return FakeResponse(200, json.dumps(
+                [{"id": "conv-1", "is_default": True},
+                 {"id": "conv-2"}]))
+        return FakeResponse(200, '{"message": {"content": "stored"}}')
 
-    monkeypatch.setattr(reporting.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(core_reporting.urllib.request, "urlopen",
+                        fake_urlopen)
     payload = {"project": "regimedesk", "account": "x",
                "mode": "paper", "generated_at": NOW.isoformat()}
-    ok, code, body = post_status(payload, "https://example.invalid/ingest",
-                                 "sekrit-token")
-    assert ok is True and code == 200
-    assert json.loads(body)["ok"] is True
-    assert captured["url"] == "https://example.invalid/ingest"
-    # the token rides in the body, added by post_status
-    assert captured["data"]["token"] == "sekrit-token"
-    assert captured["data"]["project"] == "regimedesk"
-    assert captured["data"]["account"] == "x"
+    ok, detail = send_beacon(payload,
+                             "https://host/api/agents/A1", "key-1")
+    assert ok is True
+    # step 1: conversation fetch with api_key header
+    m1, u1, d1, k1 = calls[0]
+    assert m1 == "GET" and u1 == "https://host/api/agents/A1/conversations"
+    assert k1 == "key-1" and d1 is None
+    # step 2: beacon POST to the DEFAULT conversation
+    m2, u2, d2, k2 = calls[1]
+    assert m2 == "POST"
+    assert u2 == "https://host/api/agents/A1/conversations/conv-1/messages"
+    assert k2 == "key-1"
+    # payload round-trips inside the STATUS BEACON message
+    sent = json.loads(d2.decode())
+    assert sent["message"].startswith("STATUS BEACON ")
+    inner = json.loads(sent["message"][len("STATUS BEACON "):])
+    assert inner["project"] == "regimedesk"
+    assert inner["account"] == "x"
 
 
-def test_post_status_http_error_reported(monkeypatch):
+def test_send_beacon_conversation_fetch_fails(monkeypatch):
     def fake_urlopen(req, timeout=None):
         raise urllib.error.HTTPError(
             req.full_url, 401, "Unauthorized", {},
-            io.BytesIO(b'{"ok": false, "error": "unauthorized"}'))
-    monkeypatch.setattr(reporting.urllib.request, "urlopen", fake_urlopen)
-    ok, code, body = post_status({"x": 1}, "https://x/y", "bad")
-    assert ok is False and code == 401
-    assert "unauthorized" in body
+            io.BytesIO(b'{"message": "bad key"}'))
+    monkeypatch.setattr(core_reporting.urllib.request, "urlopen",
+                        fake_urlopen)
+    ok, detail = send_beacon({"x": 1}, "https://host/api/agents/A1", "bad")
+    assert ok is False and "401" in detail
 
 
-def test_post_status_unreachable_host(monkeypatch):
+def test_send_beacon_no_conversation_found(monkeypatch):
     def fake_urlopen(req, timeout=None):
-        raise OSError("connection refused")
-    monkeypatch.setattr(reporting.urllib.request, "urlopen", fake_urlopen)
-    ok, code, body = post_status({"x": 1}, "https://x/y", "t", timeout=2)
-    assert ok is False and code == 0
-    assert "connection refused" in body
+        return FakeResponse(200, json.dumps({"unexpected": 1}))
+    monkeypatch.setattr(core_reporting.urllib.request, "urlopen",
+                        fake_urlopen)
+    ok, detail = send_beacon({"x": 1}, "https://host/api/agents/A1", "k")
+    assert ok is False and "no conversation" in detail
+
+
+def test_send_beacon_post_fails(monkeypatch):
+    state = {"n": 0}
+
+    def fake_urlopen(req, timeout=None):
+        state["n"] += 1
+        if state["n"] == 1:
+            return FakeResponse(200, json.dumps([{"id": "c1"}]))
+        raise urllib.error.HTTPError(
+            req.full_url, 400, "Bad Request", {},
+            io.BytesIO(b'{"message": "schema mismatch"}'))
+    monkeypatch.setattr(core_reporting.urllib.request, "urlopen",
+                        fake_urlopen)
+    ok, detail = send_beacon({"x": 1}, "https://host/api/agents/A1", "k")
+    assert ok is False and "400" in detail and "schema mismatch" in detail
